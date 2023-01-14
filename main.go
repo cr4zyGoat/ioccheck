@@ -36,9 +36,16 @@ func main() {
 
 	wg := new(sync.WaitGroup)
 	threads := make(chan bool, *pthreads)
+	uniques := make(map[string]bool)
 
 	for sc.Scan() {
-		ioc := IOC(sc.Text())
+		sioc := sc.Text()
+		if uniques[sioc] {
+			continue
+		}
+
+		uniques[sioc] = true
+		ioc := IOC(sioc)
 		wg.Add(1)
 
 		go func(ioc IOC) {
