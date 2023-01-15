@@ -8,12 +8,16 @@ import (
 	"net/http"
 )
 
-type otxPulseInfo struct {
-	Count int `json:"count"`
-}
-
 type otxData struct {
-	PulseInfo otxPulseInfo `json:"pulse_info"`
+	Type      string `json:"type"`
+	Indicator string `json:"indicator"`
+	PulseInfo struct {
+		Count  int `json:"count"`
+		Pulses []struct {
+			Id   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"pulses"`
+	} `json:"pulse_info"`
 }
 
 type OTXClient struct {
