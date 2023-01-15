@@ -8,7 +8,11 @@ import (
 	"net/http"
 )
 
-type otxData struct {
+const (
+	OTXBaseUrl string = "https://otx.alienvault.com/api/v1"
+)
+
+type otxResponse struct {
 	Type      string `json:"type"`
 	Indicator string `json:"indicator"`
 	PulseInfo struct {
@@ -21,8 +25,7 @@ type otxData struct {
 }
 
 type OTXClient struct {
-	BaseURL string
-	ApiKey  string
+	ApiKey string
 }
 
 func getOTXType(ioc IOC) string {
@@ -48,25 +51,26 @@ func (client *OTXClient) CheckIOC(ioc IOC) bool {
 		return false
 	}
 
-	url := fmt.Sprintf("%s/api/v1/indicators/%s/%s", client.BaseURL, ioctype, ioc)
+	url := fmt.Sprintf("%s/indicators/%s/%s", OTXBaseUrl, ioctype, ioc)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("X-OTX-API-KEY", client.ApiKey)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
+		return false
 	}
 	defer res.Body.Close()
 
-	var data otxData
+	var data otxResponse
 	body, _ := io.ReadAll(res.Body)
 	err = json.Unmarshal(body, &data)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
+		return false
 	}
 
-	cpulses := data.PulseInfo.Count
-	if cpulses > 0 {
+	if data.PulseInfo.Count > 0 {
 		return true
 	}
 
