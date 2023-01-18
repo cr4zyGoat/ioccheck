@@ -67,6 +67,8 @@ func main() {
 		ApiKey: config.AbuseIPDBApiKey,
 	}
 
+	urlhausclient := URLHausClient{}
+
 	wg := new(sync.WaitGroup)
 	threads := make(chan bool, *pthreads)
 	uniques := make(map[string]bool)
@@ -87,6 +89,8 @@ func main() {
 			if otxclient.CheckIOC(ioc) {
 				fmt.Println(ioc)
 			} else if ioc.IsIP() && abuseipclient.CheckIOC(ioc) {
+				fmt.Println(ioc)
+			} else if ioc.IsURL() && urlhausclient.CheckIOC(ioc) {
 				fmt.Println(ioc)
 			}
 
