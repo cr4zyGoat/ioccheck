@@ -2,22 +2,50 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"os/user"
+	"path/filepath"
 	"sync"
 )
 
-const (
-	OTXApiKey     string = "783d2b8e229641b987967614b8ebe9f7f6144db8326e2b231bf71080570fba9f"
-	AbuseIPApiKey string = "626a68b6b1ac24f0ca93aa7cc4116ae995238401b3084fc2baf824ab0233ff599ad11f6eaa7e11fc"
-)
+type Configuration struct {
+	AlienVaultApiKey string
+	AbuseIPDBApiKey  string
+}
+
+func ReadConfiguration() Configuration {
+	user, err := user.Current()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	configfile := filepath.Join(user.HomeDir, ".config", "ioccheck.json")
+	pfile, err := os.Open(configfile)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	defer pfile.Close()
+	var config Configuration
+	decoder := json.NewDecoder(pfile)
+	err = decoder.Decode(&config)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return config
+}
 
 func main() {
 	var pfilename *string = flag.String("f", "", "File with the IOCs")
 	var pthreads *int = flag.Int("t", 5, "Number of threads")
 	flag.Parse()
+
+	var config Configuration = ReadConfiguration()
 
 	var sc *bufio.Scanner
 	if *pfilename == "" {
@@ -32,11 +60,11 @@ func main() {
 	}
 
 	otxclient := OTXClient{
-		ApiKey: OTXApiKey,
+		ApiKey: config.AlienVaultApiKey,
 	}
 
 	abuseipclient := AbuseIPClient{
-		ApiKey: AbuseIPApiKey,
+		ApiKey: config.AbuseIPDBApiKey,
 	}
 
 	wg := new(sync.WaitGroup)
