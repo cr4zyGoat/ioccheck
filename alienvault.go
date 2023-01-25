@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -28,26 +29,27 @@ type AlienVaultResponse struct {
 	} `json:"pulse_info"`
 }
 
-func getAlienVaultType(ioc IOC) string {
+func (client *AlienVaultClient) getIocType(ioc IOC) (string, error) {
 	switch {
 	case ioc.IsIPv4():
-		return "IPv4"
+		return "IPv4", nil
 	case ioc.IsIPv6():
-		return "IPv6"
+		return "IPv6", nil
 	case ioc.IsURL():
-		return "url"
+		return "url", nil
 	case ioc.IsDomain():
-		return "domain"
+		return "domain", nil
 	case ioc.IsHash():
-		return "file"
+		return "file", nil
 	default:
-		return ""
+		serror := fmt.Sprintf("Unknown IOC type for %s", ioc)
+		return "", errors.New(serror)
 	}
 }
 
 func (client *AlienVaultClient) CheckIOC(ioc IOC) bool {
-	var ioctype string = getAlienVaultType(ioc)
-	if ioctype == "" {
+	ioctype, err := client.getIocType(ioc)
+	if err != nil {
 		return false
 	}
 
