@@ -68,6 +68,7 @@ func main() {
 	}
 
 	urlhausclient := URLHausClient{}
+	malwarebazaarclient := MalwareBazaarClient{}
 
 	wg := new(sync.WaitGroup)
 	threads := make(chan bool, *pthreads)
@@ -91,6 +92,8 @@ func main() {
 			} else if ioc.IsIP() && abuseipclient.CheckIOC(ioc) {
 				fmt.Println(ioc)
 			} else if ioc.IsURL() && urlhausclient.CheckIOC(ioc) {
+				fmt.Println(ioc)
+			} else if ioc.IsHash() && malwarebazaarclient.CheckIOC(ioc) {
 				fmt.Println(ioc)
 			}
 
