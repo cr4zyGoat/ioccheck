@@ -13,7 +13,8 @@ const (
 )
 
 type AbuseIPClient struct {
-	ApiKey string
+	apiKeys    []string
+	reqCounter int
 }
 
 type AbuseIPResponse struct {
@@ -30,10 +31,13 @@ type AbuseIPResponse struct {
 }
 
 func (client *AbuseIPClient) CheckIP(ioc IOC) bool {
+	apikey := client.apiKeys[client.reqCounter%len(client.apiKeys)]
+	client.reqCounter += 1
+
 	url := fmt.Sprintf("%s/check?ipAddress=%s", abuseIPBaseUrl, ioc)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept", "application/json")
-	req.Header.Add("Key", client.ApiKey)
+	req.Header.Add("Key", apikey)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

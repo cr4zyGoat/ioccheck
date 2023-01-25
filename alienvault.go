@@ -14,7 +14,8 @@ const (
 )
 
 type AlienVaultClient struct {
-	ApiKey string
+	apiKeys    []string
+	reqCounter int
 }
 
 type AlienVaultResponse struct {
@@ -53,9 +54,12 @@ func (client *AlienVaultClient) CheckIOC(ioc IOC) bool {
 		return false
 	}
 
+	apikey := client.apiKeys[client.reqCounter%len(client.apiKeys)]
+	client.reqCounter += 1
+
 	url := fmt.Sprintf("%s/indicators/%s/%s", alienVaultBaseUrl, ioctype, ioc)
 	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Add("X-OTX-API-KEY", client.ApiKey)
+	req.Header.Add("X-OTX-API-KEY", apikey)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

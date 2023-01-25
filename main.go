@@ -13,8 +13,12 @@ import (
 )
 
 type configuration struct {
-	AlienVaultApiKey string
-	AbuseIPDBApiKey  string
+	AlienVault struct {
+		ApiKeys []string `json:"keys"`
+	} `json:"alienvault"`
+	Abuseip struct {
+		ApiKeys []string `json:"keys"`
+	} `json:"abuseip"`
 }
 
 var (
@@ -31,15 +35,13 @@ func readConfiguration() configuration {
 	}
 
 	configfile := filepath.Join(user.HomeDir, ".config", "ioccheck.json")
-	pfile, err := os.Open(configfile)
+	bytes, err := os.ReadFile(configfile)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	defer pfile.Close()
 	var config configuration
-	decoder := json.NewDecoder(pfile)
-	err = decoder.Decode(&config)
+	err = json.Unmarshal(bytes, &config)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -80,8 +82,8 @@ func main() {
 		sc = bufio.NewScanner(pfile)
 	}
 
-	alienvaultclient = AlienVaultClient{config.AlienVaultApiKey}
-	abuseipclient = AbuseIPClient{config.AbuseIPDBApiKey}
+	alienvaultclient = AlienVaultClient{apiKeys: config.AlienVault.ApiKeys}
+	abuseipclient = AbuseIPClient{apiKeys: config.Abuseip.ApiKeys}
 	malwarebazaarclient = MalwareBazaarClient{}
 	urlhausclient = URLHausClient{}
 
