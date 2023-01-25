@@ -1,0 +1,14 @@
+{
+    "alienvault": {
+	    "keys": [
+    		"apikey1",
+		"apikey2"
+	    ]
+    },
+    "abuseip": {
+	    "keys": [
+	    	"apikey1",
+		"apikey2"
+	    ]
+    }
+}
