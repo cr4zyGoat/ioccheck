@@ -10,8 +10,10 @@ import (
 )
 
 const (
-	URLHausBaseUrl string = "https://urlhaus-api.abuse.ch/v1"
+	urlHausBaseUrl string = "https://urlhaus-api.abuse.ch/v1"
 )
+
+type URLHausClient struct{}
 
 type URLHausResponse struct {
 	QueryStatus string   `json:"query_status"`
@@ -23,10 +25,8 @@ type URLHausResponse struct {
 	Tags        []string `json:"tags"`
 }
 
-type URLHausClient struct{}
-
-func (client *URLHausClient) CheckIOC(ioc IOC) bool {
-	endpoint := fmt.Sprintf("%s/url/", URLHausBaseUrl)
+func (client *URLHausClient) CheckURL(ioc IOC) bool {
+	endpoint := fmt.Sprintf("%s/url/", urlHausBaseUrl)
 	params := url.Values{}
 	params.Add("url", string(ioc))
 

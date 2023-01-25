@@ -12,12 +12,19 @@ import (
 	"sync"
 )
 
-type Configuration struct {
+type configuration struct {
 	AlienVaultApiKey string
 	AbuseIPDBApiKey  string
 }
 
-func ReadConfiguration() Configuration {
+var (
+	alienvaultclient    AlienVaultClient
+	abuseipclient       AbuseIPClient
+	malwarebazaarclient MalwareBazaarClient
+	urlhausclient       URLHausClient
+)
+
+func readConfiguration() configuration {
 	user, err := user.Current()
 	if err != nil {
 		log.Fatalln(err)
@@ -30,7 +37,7 @@ func ReadConfiguration() Configuration {
 	}
 
 	defer pfile.Close()
-	var config Configuration
+	var config configuration
 	decoder := json.NewDecoder(pfile)
 	err = decoder.Decode(&config)
 	if err != nil {
@@ -40,12 +47,26 @@ func ReadConfiguration() Configuration {
 	return config
 }
 
+func checkIOC(ioc IOC) bool {
+	if alienvaultclient.CheckIOC(ioc) {
+		return true
+	} else if ioc.IsIP() && abuseipclient.CheckIP(ioc) {
+		return true
+	} else if ioc.IsURL() && urlhausclient.CheckURL(ioc) {
+		return true
+	} else if ioc.IsHash() && malwarebazaarclient.CheckHash(ioc) {
+		return true
+	}
+
+	return false
+}
+
 func main() {
 	var pfilename *string = flag.String("f", "", "File with the IOCs")
-	var pthreads *int = flag.Int("t", 5, "Number of threads")
+	var pthreads *int = flag.Int("t", 10, "Number of threads")
 	flag.Parse()
 
-	var config Configuration = ReadConfiguration()
+	var config configuration = readConfiguration()
 
 	var sc *bufio.Scanner
 	if *pfilename == "" {
@@ -59,16 +80,10 @@ func main() {
 		sc = bufio.NewScanner(pfile)
 	}
 
-	otxclient := OTXClient{
-		ApiKey: config.AlienVaultApiKey,
-	}
-
-	abuseipclient := AbuseIPClient{
-		ApiKey: config.AbuseIPDBApiKey,
-	}
-
-	urlhausclient := URLHausClient{}
-	malwarebazaarclient := MalwareBazaarClient{}
+	alienvaultclient = AlienVaultClient{config.AlienVaultApiKey}
+	abuseipclient = AbuseIPClient{config.AbuseIPDBApiKey}
+	malwarebazaarclient = MalwareBazaarClient{}
+	urlhausclient = URLHausClient{}
 
 	wg := new(sync.WaitGroup)
 	threads := make(chan bool, *pthreads)
@@ -87,13 +102,7 @@ func main() {
 		go func(ioc IOC) {
 			threads <- true
 
-			if otxclient.CheckIOC(ioc) {
-				fmt.Println(ioc)
-			} else if ioc.IsIP() && abuseipclient.CheckIOC(ioc) {
-				fmt.Println(ioc)
-			} else if ioc.IsURL() && urlhausclient.CheckIOC(ioc) {
-				fmt.Println(ioc)
-			} else if ioc.IsHash() && malwarebazaarclient.CheckIOC(ioc) {
+			if checkIOC(ioc) {
 				fmt.Println(ioc)
 			}
 

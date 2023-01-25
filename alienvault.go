@@ -9,10 +9,14 @@ import (
 )
 
 const (
-	OTXBaseUrl string = "https://otx.alienvault.com/api/v1"
+	alienVaultBaseUrl string = "https://otx.alienvault.com/api/v1"
 )
 
-type otxResponse struct {
+type AlienVaultClient struct {
+	ApiKey string
+}
+
+type AlienVaultResponse struct {
 	Type      string `json:"type"`
 	Indicator string `json:"indicator"`
 	PulseInfo struct {
@@ -24,11 +28,7 @@ type otxResponse struct {
 	} `json:"pulse_info"`
 }
 
-type OTXClient struct {
-	ApiKey string
-}
-
-func getOTXType(ioc IOC) string {
+func getAlienVaultType(ioc IOC) string {
 	switch {
 	case ioc.IsIPv4():
 		return "IPv4"
@@ -45,13 +45,13 @@ func getOTXType(ioc IOC) string {
 	}
 }
 
-func (client *OTXClient) CheckIOC(ioc IOC) bool {
-	var ioctype string = getOTXType(ioc)
+func (client *AlienVaultClient) CheckIOC(ioc IOC) bool {
+	var ioctype string = getAlienVaultType(ioc)
 	if ioctype == "" {
 		return false
 	}
 
-	url := fmt.Sprintf("%s/indicators/%s/%s", OTXBaseUrl, ioctype, ioc)
+	url := fmt.Sprintf("%s/indicators/%s/%s", alienVaultBaseUrl, ioctype, ioc)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("X-OTX-API-KEY", client.ApiKey)
 
@@ -62,7 +62,7 @@ func (client *OTXClient) CheckIOC(ioc IOC) bool {
 	}
 	defer res.Body.Close()
 
-	var data otxResponse
+	var data AlienVaultResponse
 	body, _ := io.ReadAll(res.Body)
 	err = json.Unmarshal(body, &data)
 	if err != nil {

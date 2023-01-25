@@ -9,8 +9,12 @@ import (
 )
 
 const (
-	AbuseIPBaseUrl string = "https://api.abuseipdb.com/api/v2"
+	abuseIPBaseUrl string = "https://api.abuseipdb.com/api/v2"
 )
+
+type AbuseIPClient struct {
+	ApiKey string
+}
 
 type AbuseIPResponse struct {
 	Data struct {
@@ -25,12 +29,8 @@ type AbuseIPResponse struct {
 	} `json:"data"`
 }
 
-type AbuseIPClient struct {
-	ApiKey string
-}
-
-func (client *AbuseIPClient) CheckIOC(ioc IOC) bool {
-	url := fmt.Sprintf("%s/check?ipAddress=%s", AbuseIPBaseUrl, ioc)
+func (client *AbuseIPClient) CheckIP(ioc IOC) bool {
+	url := fmt.Sprintf("%s/check?ipAddress=%s", abuseIPBaseUrl, ioc)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Key", client.ApiKey)
