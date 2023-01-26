@@ -30,7 +30,15 @@ type AbuseIPResponse struct {
 	} `json:"data"`
 }
 
+func (client *AbuseIPClient) hasKeys() bool {
+	return len(client.apiKeys) > 0
+}
+
 func (client *AbuseIPClient) CheckIP(ioc IOC) bool {
+	if !client.hasKeys() {
+		return false
+	}
+
 	apikey := client.apiKeys[client.reqCounter%len(client.apiKeys)]
 	client.reqCounter += 1
 

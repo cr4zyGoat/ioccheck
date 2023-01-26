@@ -12,6 +12,13 @@ import (
 	"sync"
 )
 
+var (
+	alienvaultclient    AlienVaultClient
+	abuseipclient       AbuseIPClient
+	malwarebazaarclient MalwareBazaarClient
+	urlhausclient       URLHausClient
+)
+
 type configuration struct {
 	AlienVault struct {
 		ApiKeys []string `json:"keys"`
@@ -21,42 +28,45 @@ type configuration struct {
 	} `json:"abuseip"`
 }
 
-var (
-	alienvaultclient    AlienVaultClient
-	abuseipclient       AbuseIPClient
-	malwarebazaarclient MalwareBazaarClient
-	urlhausclient       URLHausClient
-)
+func readConfiguration() (configuration, error) {
+	config := configuration{}
 
-func readConfiguration() configuration {
 	user, err := user.Current()
 	if err != nil {
-		log.Fatalln(err)
+		return config, err
 	}
 
 	configfile := filepath.Join(user.HomeDir, ".config", "ioccheck.json")
 	bytes, err := os.ReadFile(configfile)
 	if err != nil {
-		log.Fatalln(err)
+		return config, err
 	}
 
-	var config configuration
 	err = json.Unmarshal(bytes, &config)
 	if err != nil {
-		log.Fatalln(err)
+		return config, err
 	}
 
-	return config
+	return config, nil
 }
 
 func checkIOC(ioc IOC) bool {
+	switch {
+	case ioc.IsIP():
+		if abuseipclient.CheckIP(ioc) {
+			return true
+		}
+	case ioc.IsURL():
+		if urlhausclient.CheckURL(ioc) {
+			return true
+		}
+	case ioc.IsHash():
+		if malwarebazaarclient.CheckHash(ioc) {
+			return true
+		}
+	}
+
 	if alienvaultclient.CheckIOC(ioc) {
-		return true
-	} else if ioc.IsIP() && abuseipclient.CheckIP(ioc) {
-		return true
-	} else if ioc.IsURL() && urlhausclient.CheckURL(ioc) {
-		return true
-	} else if ioc.IsHash() && malwarebazaarclient.CheckHash(ioc) {
 		return true
 	}
 
@@ -68,7 +78,10 @@ func main() {
 	var pthreads *int = flag.Int("t", 10, "Number of threads")
 	flag.Parse()
 
-	var config configuration = readConfiguration()
+	config, err := readConfiguration()
+	if err != nil {
+		log.Println(err)
+	}
 
 	var sc *bufio.Scanner
 	if *pfilename == "" {

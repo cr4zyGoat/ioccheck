@@ -48,9 +48,17 @@ func (client *AlienVaultClient) getIocType(ioc IOC) (string, error) {
 	}
 }
 
+func (client *AlienVaultClient) hasKeys() bool {
+	return len(client.apiKeys) > 0
+}
+
 func (client *AlienVaultClient) CheckIOC(ioc IOC) bool {
 	ioctype, err := client.getIocType(ioc)
 	if err != nil {
+		return false
+	}
+
+	if !client.hasKeys() {
 		return false
 	}
 
