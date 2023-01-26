@@ -7,8 +7,9 @@ Fast Golang program to check a bunch of IoCs against some TI providers. The prog
 So far, the following platforms have been integrated:
 - AlienVault (apikey required, free)
 - AbuseIP (apikey required, free)
-- URLHaus
+- ThreatFox
 - MalwareBazaar
+- URLHaus
 
 ## Features
 

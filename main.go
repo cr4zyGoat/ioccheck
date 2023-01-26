@@ -15,6 +15,7 @@ import (
 var (
 	alienvaultclient    AlienVaultClient
 	abuseipclient       AbuseIPClient
+	threatfoxclient     ThreatFoxClient
 	malwarebazaarclient MalwareBazaarClient
 	urlhausclient       URLHausClient
 )
@@ -50,7 +51,7 @@ func readConfiguration() (configuration, error) {
 	return config, nil
 }
 
-func checkIOC(ioc IOC) bool {
+func checkIoC(ioc IOC) bool {
 	switch {
 	case ioc.IsIP():
 		if abuseipclient.CheckIP(ioc) {
@@ -66,6 +67,9 @@ func checkIOC(ioc IOC) bool {
 		}
 	}
 
+	if threatfoxclient.CheckIoC(ioc) {
+		return true
+	}
 	if alienvaultclient.CheckIOC(ioc) {
 		return true
 	}
@@ -98,6 +102,7 @@ func main() {
 	alienvaultclient = AlienVaultClient{apiKeys: config.AlienVault.ApiKeys}
 	abuseipclient = AbuseIPClient{apiKeys: config.Abuseip.ApiKeys}
 	malwarebazaarclient = MalwareBazaarClient{}
+	threatfoxclient = ThreatFoxClient{}
 	urlhausclient = URLHausClient{}
 
 	wg := new(sync.WaitGroup)
@@ -117,7 +122,7 @@ func main() {
 		go func(ioc IOC) {
 			threads <- true
 
-			if checkIOC(ioc) {
+			if checkIoC(ioc) {
 				fmt.Println(ioc)
 			}
 
