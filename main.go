@@ -1,23 +1,17 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/user"
 	"path/filepath"
-	"sync"
-)
 
-var (
-	alienvaultclient    AlienVaultClient
-	abuseipclient       AbuseIPClient
-	threatfoxclient     ThreatFoxClient
-	malwarebazaarclient MalwareBazaarClient
-	urlhausclient       URLHausClient
+	"cr4zygoat/ioccheck/runtime"
+	"cr4zygoat/ioccheck/ticlients"
 )
 
 type configuration struct {
@@ -51,35 +45,9 @@ func readConfiguration() (configuration, error) {
 	return config, nil
 }
 
-func checkIoC(ioc IOC) bool {
-	switch {
-	case ioc.IsIP():
-		if abuseipclient.CheckIP(ioc) {
-			return true
-		}
-	case ioc.IsURL():
-		if urlhausclient.CheckURL(ioc) {
-			return true
-		}
-	case ioc.IsHash():
-		if malwarebazaarclient.CheckHash(ioc) {
-			return true
-		}
-	}
-
-	if threatfoxclient.CheckIoC(ioc) {
-		return true
-	}
-	if alienvaultclient.CheckIOC(ioc) {
-		return true
-	}
-
-	return false
-}
-
 func main() {
 	var pfilename *string = flag.String("f", "", "File with the IOCs")
-	var pthreads *int = flag.Int("t", 10, "Number of threads")
+	var pthreads *int = flag.Int("t", 3, "Number of threads per TI platform")
 	flag.Parse()
 
 	config, err := readConfiguration()
@@ -87,49 +55,36 @@ func main() {
 		log.Println(err)
 	}
 
-	var sc *bufio.Scanner
+	var source io.Reader
 	if *pfilename == "" {
-		sc = bufio.NewScanner(os.Stdin)
+		source = os.Stdin
 	} else {
-		pfile, err := os.Open(*pfilename)
+		source, err = os.Open(*pfilename)
 		if err != nil {
 			log.Fatalln(err)
 		}
-
-		sc = bufio.NewScanner(pfile)
 	}
 
-	alienvaultclient = AlienVaultClient{apiKeys: config.AlienVault.ApiKeys}
-	abuseipclient = AbuseIPClient{apiKeys: config.Abuseip.ApiKeys}
-	malwarebazaarclient = MalwareBazaarClient{}
-	threatfoxclient = ThreatFoxClient{}
-	urlhausclient = URLHausClient{}
+	threads := *pthreads
+	runner := runtime.NewRunner()
+	runner.Clients.Threatfox = ticlients.NewThreatFoxClient(threads)
+	runner.Clients.Malwarebazaar = ticlients.NewMalwareBazaarClient(threads)
+	runner.Clients.Urlhaus = ticlients.NewUrlHausClient(threads)
 
-	wg := new(sync.WaitGroup)
-	threads := make(chan bool, *pthreads)
-	uniques := make(map[string]bool)
-
-	for sc.Scan() {
-		sioc := sc.Text()
-		if uniques[sioc] {
-			continue
-		}
-
-		uniques[sioc] = true
-		ioc := IOC(sioc)
-		wg.Add(1)
-
-		go func(ioc IOC) {
-			threads <- true
-
-			if checkIoC(ioc) {
-				fmt.Println(ioc)
-			}
-
-			<-threads
-			wg.Done()
-		}(ioc)
+	keys := config.AlienVault.ApiKeys
+	if len(keys) > 0 {
+		runner.Clients.Alienvault = ticlients.NewAlienVaultClient(keys, threads)
 	}
 
-	wg.Wait()
+	keys = config.Abuseip.ApiKeys
+	if len(keys) > 0 {
+		runner.Clients.Abuseip = ticlients.NewAbuseIPClient(keys, threads)
+	}
+
+	output := make(chan string)
+	go runner.Run(source, output)
+
+	for ioc := range output {
+		fmt.Println(ioc)
+	}
 }

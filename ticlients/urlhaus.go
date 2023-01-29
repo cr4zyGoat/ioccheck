@@ -1,4 +1,4 @@
-package main
+package ticlients
 
 import (
 	"encoding/json"
@@ -13,9 +13,11 @@ const (
 	urlHausBaseUrl string = "https://urlhaus-api.abuse.ch/v1"
 )
 
-type URLHausClient struct{}
+type UrlHausClient struct {
+	threads chan bool
+}
 
-type URLHausResponse struct {
+type urlHausResponse struct {
 	QueryStatus string   `json:"query_status"`
 	Id          string   `json:"id"`
 	Url         string   `json:"url"`
@@ -25,19 +27,25 @@ type URLHausResponse struct {
 	Tags        []string `json:"tags"`
 }
 
-func (client *URLHausClient) CheckURL(ioc IOC) bool {
+func NewUrlHausClient(threads int) *UrlHausClient {
+	client := new(UrlHausClient)
+	client.threads = make(chan bool, threads)
+	return client
+}
+
+func (client *UrlHausClient) CheckURL(ioc string) bool {
 	endpoint := fmt.Sprintf("%s/url/", urlHausBaseUrl)
 	params := url.Values{}
-	params.Add("url", string(ioc))
+	params.Add("url", ioc)
 
 	res, err := http.PostForm(endpoint, params)
 	if err != nil {
 		log.Println(err)
 		return false
 	}
-	defer res.Body.Close()
 
-	var response URLHausResponse
+	defer res.Body.Close()
+	var response urlHausResponse
 	body, _ := io.ReadAll(res.Body)
 	err = json.Unmarshal(body, &response)
 	if err != nil {

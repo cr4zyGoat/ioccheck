@@ -1,6 +1,7 @@
-package main
+package ticlients
 
 import (
+	"cr4zygoat/ioccheck/util"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,11 +15,12 @@ const (
 )
 
 type AlienVaultClient struct {
+	threads    chan bool
 	apiKeys    []string
 	reqCounter int
 }
 
-type AlienVaultResponse struct {
+type alienVaultResponse struct {
 	Type      string `json:"type"`
 	Indicator string `json:"indicator"`
 	PulseInfo struct {
@@ -30,35 +32,34 @@ type AlienVaultResponse struct {
 	} `json:"pulse_info"`
 }
 
-func (client *AlienVaultClient) getIocType(ioc IOC) (string, error) {
+func NewAlienVaultClient(keys []string, threads int) *AlienVaultClient {
+	client := new(AlienVaultClient)
+	client.threads = make(chan bool, threads)
+	client.apiKeys = keys
+	return client
+}
+
+func (client *AlienVaultClient) getIocType(ioc string) (string, error) {
 	switch {
-	case ioc.IsIPv4():
+	case util.IsIPv4(ioc):
 		return "IPv4", nil
-	case ioc.IsIPv6():
+	case util.IsIPv6(ioc):
 		return "IPv6", nil
-	case ioc.IsURL():
+	case util.IsUrl(ioc):
 		return "url", nil
-	case ioc.IsDomain():
+	case util.IsDomain(ioc):
 		return "domain", nil
-	case ioc.IsHash():
+	case util.IsHash(ioc):
 		return "file", nil
 	default:
-		serror := fmt.Sprintf("Unknown IOC type for %s", ioc)
-		return "", errors.New(serror)
+		message := fmt.Sprintf("Unknown IOC type for %s", ioc)
+		return "", errors.New(message)
 	}
 }
 
-func (client *AlienVaultClient) hasKeys() bool {
-	return len(client.apiKeys) > 0
-}
-
-func (client *AlienVaultClient) CheckIOC(ioc IOC) bool {
+func (client *AlienVaultClient) CheckIOC(ioc string) bool {
 	ioctype, err := client.getIocType(ioc)
 	if err != nil {
-		return false
-	}
-
-	if !client.hasKeys() {
 		return false
 	}
 
@@ -69,14 +70,17 @@ func (client *AlienVaultClient) CheckIOC(ioc IOC) bool {
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("X-OTX-API-KEY", apikey)
 
+	client.threads <- true
 	res, err := http.DefaultClient.Do(req)
+	<-client.threads
+
 	if err != nil {
 		log.Println(err)
 		return false
 	}
 	defer res.Body.Close()
 
-	var data AlienVaultResponse
+	var data alienVaultResponse
 	body, _ := io.ReadAll(res.Body)
 	err = json.Unmarshal(body, &data)
 	if err != nil {

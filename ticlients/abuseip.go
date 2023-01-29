@@ -1,4 +1,4 @@
-package main
+package ticlients
 
 import (
 	"encoding/json"
@@ -13,11 +13,12 @@ const (
 )
 
 type AbuseIPClient struct {
+	threads    chan bool
 	apiKeys    []string
 	reqCounter int
 }
 
-type AbuseIPResponse struct {
+type abuseIPResponse struct {
 	Data struct {
 		IPAddress            string   `json:"ipAddress"`
 		AbuseConfidenceScore int      `json:"abuseConfidenceScore"`
@@ -30,15 +31,14 @@ type AbuseIPResponse struct {
 	} `json:"data"`
 }
 
-func (client *AbuseIPClient) hasKeys() bool {
-	return len(client.apiKeys) > 0
+func NewAbuseIPClient(keys []string, threads int) *AbuseIPClient {
+	client := new(AbuseIPClient)
+	client.threads = make(chan bool, threads)
+	client.apiKeys = keys
+	return client
 }
 
-func (client *AbuseIPClient) CheckIP(ioc IOC) bool {
-	if !client.hasKeys() {
-		return false
-	}
-
+func (client *AbuseIPClient) CheckIP(ioc string) bool {
 	apikey := client.apiKeys[client.reqCounter%len(client.apiKeys)]
 	client.reqCounter += 1
 
@@ -47,14 +47,17 @@ func (client *AbuseIPClient) CheckIP(ioc IOC) bool {
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Key", apikey)
 
+	client.threads <- true
 	res, err := http.DefaultClient.Do(req)
+	<-client.threads
+
 	if err != nil {
 		log.Println(err)
 		return false
 	}
 	defer res.Body.Close()
 
-	var response AbuseIPResponse
+	var response abuseIPResponse
 	body, _ := io.ReadAll(res.Body)
 	err = json.Unmarshal(body, &response)
 	if err != nil {

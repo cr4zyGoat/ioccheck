@@ -1,6 +1,6 @@
 # IoCCheck
 
-Fast Golang program to check a bunch of IoCs against some TI providers. The program writes to the stdout just the identified ones.
+Fast Golang program to check a bunch of IoCs against some Threat Intelligence platforms. The program writes to the stdout just the identified ones.
 
 ## TI Platforms
 
@@ -14,7 +14,7 @@ So far, the following platforms have been integrated:
 ## Features
 
 Some features already implemented are:
-- IoC checks parallelization
+- IoC check parallelization
 - Multi-key support
 - User configuration file
 
@@ -40,7 +40,7 @@ Usage of ./ioccheck:
   -f string
     	File with the IOCs
   -t int
-    	Number of threads (default 10)
+    	Number of threads per TI platform (default 3)
 ```
 
 ## Installation

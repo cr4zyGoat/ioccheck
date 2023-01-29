@@ -1,3 +1,3 @@
-module github.com/cr4zygoat/ioccheck
+module cr4zygoat/ioccheck
 
 go 1.19
