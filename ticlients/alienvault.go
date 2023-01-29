@@ -1,13 +1,14 @@
 package ticlients
 
 import (
-	"cr4zygoat/ioccheck/util"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/cr4zygoat/ioccheck/util"
 )
 
 const (

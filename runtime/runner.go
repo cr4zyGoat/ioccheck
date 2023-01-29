@@ -2,10 +2,11 @@ package runtime
 
 import (
 	"bufio"
-	"cr4zygoat/ioccheck/ticlients"
-	"cr4zygoat/ioccheck/util"
 	"io"
 	"sync"
+
+	"github.com/cr4zygoat/ioccheck/ticlients"
+	"github.com/cr4zygoat/ioccheck/util"
 )
 
 type runner struct {

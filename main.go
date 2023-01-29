@@ -10,8 +10,8 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"cr4zygoat/ioccheck/runtime"
-	"cr4zygoat/ioccheck/ticlients"
+	"github.com/cr4zygoat/ioccheck/runtime"
+	"github.com/cr4zygoat/ioccheck/ticlients"
 )
 
 type configuration struct {
