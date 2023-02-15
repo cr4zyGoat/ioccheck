@@ -65,7 +65,7 @@ func (client *AbuseIPClient) CheckIP(ioc string) bool {
 		return false
 	}
 
-	if response.Data.AbuseConfidenceScore > 40 {
+	if response.Data.AbuseConfidenceScore >= 30 {
 		return true
 	}
 
