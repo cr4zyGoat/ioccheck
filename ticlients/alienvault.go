@@ -31,6 +31,10 @@ type alienVaultResponse struct {
 			Name string `json:"name"`
 		} `json:"pulses"`
 	} `json:"pulse_info"`
+	FalsePositive []struct {
+		Assessment     string `json:"assessment"`
+		AssessmentDate string `json:"assessment_date"`
+	} `json:"false_positive"`
 }
 
 func NewAlienVaultClient(keys []string, threads int) *AlienVaultClient {
@@ -87,6 +91,12 @@ func (client *AlienVaultClient) CheckIOC(ioc string) bool {
 	if err != nil {
 		log.Println(err)
 		return false
+	}
+
+	for _, fp := range data.FalsePositive {
+		if fp.Assessment == "accepted" {
+			return false
+		}
 	}
 
 	if data.PulseInfo.Count > 0 {
